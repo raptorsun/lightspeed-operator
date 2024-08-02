@@ -88,6 +88,8 @@ type OLSConfig struct {
 	ReferenceContent ReferenceContent `json:"reference_content,omitempty"`
 	// User data collection configuration
 	UserDataCollection UserDataCollectionConfig `json:"user_data_collection,omitempty"`
+	// List of Paths to files containing additional CA certificates in the app server container.
+	ExtraCAs []string `json:"extra_ca,omitempty"`
 }
 
 type LoggingConfig struct {

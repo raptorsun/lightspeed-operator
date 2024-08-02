@@ -123,6 +123,11 @@ spec:
               ols:
                 description: OLSSpec defines the desired state of OLS deployment.
                 properties:
+                  additionalCA:
+                    description: Additional CA for TLS communication
+                    items:
+                      type: string
+                    type: array
                   classifierModel:
                     description: Classifier model name
                     type: string

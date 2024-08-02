@@ -57,6 +57,8 @@ const (
 	AppServerPrometheusRuleName = "lightspeed-app-server-prometheus-rule"
 	// AppServerMetricsPath is the path of the metrics endpoint of the OLS application server
 	AppServerMetricsPath = "/metrics"
+	// AppAdditionalCAConfigmapName is the name of the additional CA configmap
+	AppAdditionalCAConfigmapName = "lightspeed-app-server-additional-ca"
 
 	// Image of the OLS application redis server
 	// OLSConfigHashKey is the key of the hash value of the OLSConfig configmap

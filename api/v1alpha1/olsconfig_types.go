@@ -102,6 +102,9 @@ type OLSSpec struct {
 	// User data collection switches
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="User Data Collection"
 	UserDataCollection UserDataCollectionSpec `json:"userDataCollection,omitempty"`
+	// Additional CA for TLS communication
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Additional CA",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	AdditionalCA []string `json:"additionalCA,omitempty"`
 }
 
 // DeploymentConfig defines the schema for overriding deployment of OLS instance.

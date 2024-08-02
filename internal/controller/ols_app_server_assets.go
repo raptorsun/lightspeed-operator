@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"path"
 	"strings"
@@ -259,6 +261,42 @@ func (r *OLSConfigReconciler) generateOLSConfigMap(ctx context.Context, cr *olsv
 	}
 
 	return &cm, nil
+}
+
+func (r *OLSConfigReconciler) generateAdditionalCAConfigmap(cr *olsv1alpha1.OLSConfig) (*corev1.ConfigMap, error) {
+	if len(cr.Spec.OLSConfig.AdditionalCA) == 0 {
+		return nil, nil
+	}
+	cmData := map[string]string{}
+	for idx, caStr := range cr.Spec.OLSConfig.AdditionalCA {
+		// one certificate per array element
+		block, _ := pem.Decode([]byte(caStr))
+		if block == nil {
+			return nil, fmt.Errorf("failed to decode additional CA certificate #%d: %s", idx, caStr)
+		}
+		if block.Type != "CERTIFICATE" {
+			return nil, fmt.Errorf("failed to decode additional CA certificate #%d: expected CERTIFICATE, got %s", idx, block.Type)
+		}
+		// check the CA is correctly formatted
+		_, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse additional CA certificate #%d: %v", idx, err)
+		}
+		caFileName := fmt.Sprintf("ca-%d.crt", idx)
+		cmData[caFileName] = caStr
+	}
+
+	cm := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      AppAdditionalCAConfigmapName,
+			Namespace: r.Options.Namespace,
+			Labels:    generateAppServerSelectorLabels(),
+		},
+		Data: cmData,
+	}
+
+	return &cm, nil
+
 }
 
 func (r *OLSConfigReconciler) generateService(cr *olsv1alpha1.OLSConfig) (*corev1.Service, error) {
