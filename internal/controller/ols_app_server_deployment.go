@@ -61,6 +61,7 @@ func (r *OLSConfigReconciler) generateOLSDeployment(cr *olsv1alpha1.OLSConfig) (
 	const OLSConfigVolumeName = "cm-olsconfig"
 	const OLSUserDataVolumeName = "ols-user-data"
 	const OLSUserDataMountPath = "/app-root/ols-user-data"
+	const AdditionalCAVolumeName = "additional-ca"
 	revisionHistoryLimit := int32(1)
 	volumeDefaultMode := int32(420)
 
@@ -84,6 +85,7 @@ func (r *OLSConfigReconciler) generateOLSDeployment(cr *olsv1alpha1.OLSConfig) (
 	// TLS volume
 	tlsSecretNameMountPath := path.Join(OLSAppCertsMountRoot, OLSCertsSecretName)
 	secretMounts[OLSCertsSecretName] = tlsSecretNameMountPath
+	AdditionalCAMountPath := path.Join(OLSAppCertsMountRoot, AppAdditionalCACertDir)
 
 	// Container ports
 	ports := []corev1.ContainerPort{
@@ -129,6 +131,23 @@ func (r *OLSConfigReconciler) generateOLSDeployment(cr *olsv1alpha1.OLSConfig) (
 	if dataCollectorEnabled {
 		volumes = append(volumes, olsUserDataVolume)
 	}
+
+	// User provided additional CA certificates
+	if len(cr.Spec.OLSConfig.AdditionalCA) > 0 {
+		additionalCAVolume := corev1.Volume{
+			Name: AdditionalCAVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: AppAdditionalCAConfigmapName,
+					},
+					DefaultMode: &volumeDefaultMode,
+				},
+			},
+		}
+		volumes = append(volumes, additionalCAVolume)
+	}
+
 	// TODO: Update DB
 	//volumes = append(volumes, olsConfigVolume, olsUserDataVolume, getRedisCAConfigVolume())
 
@@ -156,6 +175,15 @@ func (r *OLSConfigReconciler) generateOLSDeployment(cr *olsv1alpha1.OLSConfig) (
 	if dataCollectorEnabled {
 		volumeMounts = append(volumeMounts, olsUserDataVolumeMount)
 	}
+	if len(cr.Spec.OLSConfig.AdditionalCA) > 0 {
+		additionalCAVolumeMount := corev1.VolumeMount{
+			Name:      AdditionalCAVolumeName,
+			MountPath: AdditionalCAMountPath,
+			ReadOnly:  true,
+		}
+		volumeMounts = append(volumeMounts, additionalCAVolumeMount)
+	}
+
 	// TODO: Update DB
 	//volumeMounts = append(volumeMounts, olsConfigVolumeMount, olsUserDataVolumeMount, getRedisCAVolumeMount(path.Join(OLSAppCertsMountRoot, RedisCertsSecretName, RedisCAVolume)))
 

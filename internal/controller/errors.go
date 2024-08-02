@@ -1,6 +1,7 @@
 package controller
 
 const (
+	ErrCreateAdditionalCACM            = "failed to create additional CA configmap"
 	ErrCreateAPIConfigmap              = "failed to create OLS configmap"
 	ErrCreateAPIDeployment             = "failed to create OLS deployment"
 	ErrCreateAPIService                = "failed to create OLS service"
@@ -14,6 +15,8 @@ const (
 	ErrCreateServiceMonitor            = "failed to create ServiceMonitor"
 	ErrCreatePrometheusRule            = "failed to create PrometheusRule"
 	ErrDeleteConsolePlugin             = "failed to delete Console Plugin"
+	ErrDeleteAdditionalCACM            = "failed to delete additional CA configmap"
+	ErrGenerateAdditionalCACM          = "failed to generate additional CA configmap"
 	ErrGenerateAPIConfigmap            = "failed to generate OLS configmap"
 	ErrGenerateAPIDeployment           = "failed to generate OLS deployment"
 	ErrGenerateAPIService              = "failed to generate OLS service"
@@ -27,6 +30,7 @@ const (
 	ErrGenerateSARClusterRoleBinding   = "failed to generate SAR cluster role binding"
 	ErrGenerateServiceMonitor          = "failed to generate ServiceMonitor"
 	ErrGeneratePrometheusRule          = "failed to generate PrometheusRule"
+	ErrGetAdditionalCACM               = "failed to get additional CA configmap"
 	ErrGetAPIConfigmap                 = "failed to get OLS configmap"
 	ErrGetAPIDeployment                = "failed to get OLS deployment"
 	ErrGetAPIService                   = "failed to get OLS service"

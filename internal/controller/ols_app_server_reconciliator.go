@@ -38,6 +38,10 @@ func (r *OLSConfigReconciler) reconcileAppServer(ctx context.Context, olsconfig 
 			Task: r.reconcileOLSConfigMap,
 		},
 		{
+			Name: "reconcile Additional CA ConfigMap",
+			Task: r.reconcileOLSAdditionalCAConfigMap,
+		},
+		{
 			Name: "reconcile App Service",
 			Task: r.reconcileService,
 		},
@@ -118,6 +122,60 @@ func (r *OLSConfigReconciler) reconcileOLSConfigMap(ctx context.Context, cr *ols
 		return fmt.Errorf("%s: %w", ErrUpdateAPIConfigmap, err)
 	}
 	r.logger.Info("OLS configmap reconciled", "configmap", cm.Name, "hash", cm.Annotations[OLSConfigHashKey])
+	return nil
+}
+
+func (r *OLSConfigReconciler) reconcileOLSAdditionalCAConfigMap(ctx context.Context, cr *olsv1alpha1.OLSConfig) error {
+	cm, err := r.generateAdditionalCAConfigmap(cr)
+	if err != nil {
+		return fmt.Errorf("%s: %w", ErrGenerateAdditionalCACM, err)
+	}
+	if cm == nil {
+		// delete the configmap
+		foundCm := &corev1.ConfigMap{}
+		err = r.Client.Get(ctx, client.ObjectKey{Name: AppAdditionalCAConfigmapName, Namespace: r.Options.Namespace}, foundCm)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				r.logger.Info("additional CA configmap not found, no action needed")
+				return nil
+			}
+			return fmt.Errorf("%s: %w", ErrGetAdditionalCACM, err)
+		}
+		r.logger.Info("deleting additional CA configmap", "configmap", foundCm.Name)
+		err = r.Delete(ctx, foundCm)
+		if err != nil {
+			return fmt.Errorf("%s: %w", ErrDeleteAdditionalCACM, err)
+		}
+		// no additional CA certs, no need to create configmap
+		return nil
+	}
+
+	foundCm := &corev1.ConfigMap{}
+	err = r.Client.Get(ctx, client.ObjectKey{Name: AppAdditionalCAConfigmapName, Namespace: r.Options.Namespace}, foundCm)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			r.logger.Info("creating a new additional CA configmap", "configmap", cm.Name)
+			err = r.Create(ctx, cm)
+			if err != nil {
+				return fmt.Errorf("%s: %w", ErrCreateAdditionalCACM, err)
+			}
+			r.logger.Info("additional CA configmap created", "configmap", cm.Name)
+			return nil
+		}
+		return fmt.Errorf("%s: %w", ErrGetAdditionalCACM, err)
+	}
+	if configmapEqual(foundCm, cm) {
+		r.logger.Info("additional CA configmap unchanged, reconciliation skipped", "configmap", cm.Name)
+		return nil
+	}
+
+	foundCm.ObjectMeta.Labels = cm.ObjectMeta.Labels
+	foundCm.Data = cm.Data
+	err = r.Update(ctx, foundCm)
+	if err != nil {
+		return fmt.Errorf("%s: %w", ErrUpdateAPIConfigmap, err)
+	}
+	r.logger.Info("additional CA configmap reconciled", "configmap", cm.Name)
 	return nil
 }
 

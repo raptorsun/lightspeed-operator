@@ -22,33 +22,6 @@ import (
 	olsv1alpha1 "github.com/openshift/lightspeed-operator/api/v1alpha1"
 )
 
-const testCACert = `-----BEGIN CERTIFICATE-----
-MIIEMDCCAxigAwIBAgIJANqb7HHzA7AZMA0GCSqGSIb3DQEBCwUAMIGkMQswCQYD
-VQQGEwJQQTEPMA0GA1UECAwGUGFuYW1hMRQwEgYDVQQHDAtQYW5hbWEgQ2l0eTEk
-MCIGA1UECgwbVHJ1c3RDb3IgU3lzdGVtcyBTLiBkZSBSLkwuMScwJQYDVQQLDB5U
-cnVzdENvciBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkxHzAdBgNVBAMMFlRydXN0Q29y
-IFJvb3RDZXJ0IENBLTEwHhcNMTYwMjA0MTIzMjE2WhcNMjkxMjMxMTcyMzE2WjCB
-pDELMAkGA1UEBhMCUEExDzANBgNVBAgMBlBhbmFtYTEUMBIGA1UEBwwLUGFuYW1h
-IENpdHkxJDAiBgNVBAoMG1RydXN0Q29yIFN5c3RlbXMgUy4gZGUgUi5MLjEnMCUG
-A1UECwweVHJ1c3RDb3IgQ2VydGlmaWNhdGUgQXV0aG9yaXR5MR8wHQYDVQQDDBZU
-cnVzdENvciBSb290Q2VydCBDQS0xMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
-CgKCAQEAv463leLCJhJrMxnHQFgKq1mqjQCj/IDHUHuO1CAmujIS2CNUSSUQIpid
-RtLByZ5OGy4sDjjzGiVoHKZaBeYei0i/mJZ0PmnK6bV4pQa81QBeCQryJ3pS/C3V
-seq0iWEk8xoT26nPUu0MJLq5nux+AHT6k61sKZKuUbS701e/s/OojZz0JEsq1pme
-9J7+wH5COucLlVPat2gOkEz7cD+PSiyU8ybdY2mplNgQTsVHCJCZGxdNuWxu72CV
-EY4hgLW9oHPY0LJ3xEXqWib7ZnZ2+AYfYW0PVcWDtxBWcgYHpfOxGgMFZA6dWorW
-hnAbJN7+KIor0Gqw/Hqi3LJ5DotlDwIDAQABo2MwYTAdBgNVHQ4EFgQU7mtJPHo/
-DeOxCbeKyKsZn3MzUOcwHwYDVR0jBBgwFoAU7mtJPHo/DeOxCbeKyKsZn3MzUOcw
-DwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAYYwDQYJKoZIhvcNAQELBQAD
-ggEBACUY1JGPE+6PHh0RU9otRCkZoB5rMZ5NDp6tPVxBb5UrJKF5mDo4Nvu7Zp5I
-/5CQ7z3UuJu0h3U/IJvOcs+hVcFNZKIZBqEHMwwLKeXx6quj7LUKdJDHfXLy11yf
-ke+Ri7fc7Waiz45mO7yfOgLgJ90WmMCV1Aqk5IGadZQ1nJBfiDcGrVmVCrDRZ9MZ
-yonnMlo2HD6CqFqTvsbQZJG2z9m2GM/bftJlo6bEjhcxwft+dtvTheNYsnd6djts
-L1Ac59v2Z3kf9YKVmgenFK+P3CghZwnS1k1aHBkcjndcw5QkPTJrS37UeJSDvjdN
-zl/HHk484IkzlQsPpTLWPFp5LBk=
------END CERTIFICATE-----
-`
-
 var testURL = "https://testURL"
 
 var _ = Describe("App server assets", func() {
@@ -154,6 +127,9 @@ var _ = Describe("App server assets", func() {
 						FeedbackStorage:     "/app-root/ols-user-data/feedback",
 						TranscriptsDisabled: false,
 						TranscriptsStorage:  "/app-root/ols-user-data/transcripts",
+					},
+					ExtraCAs: []string{
+						path.Join(OLSAppCertsMountRoot, AppAdditionalCACertDir, "ca-0.crt"),
 					},
 				},
 				LLMProviders: []ProviderConfig{
@@ -278,6 +254,11 @@ var _ = Describe("App server assets", func() {
 					ReadOnly:  false,
 					MountPath: "/app-root/ols-user-data",
 				},
+				{
+					Name:      "additional-ca",
+					ReadOnly:  true,
+					MountPath: "/etc/certs/ols-additional-ca",
+				},
 			}))
 			Expect(dep.Spec.Template.Spec.Containers[0].Resources).To(Equal(corev1.ResourceRequirements{
 				Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("2Gi")},
@@ -345,6 +326,15 @@ var _ = Describe("App server assets", func() {
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
+				{
+					Name: "additional-ca",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{Name: AppAdditionalCAConfigmapName},
+							DefaultMode:          &defaultVolumeMode,
+						},
+					},
+				},
 			}))
 			Expect(dep.Spec.Selector.MatchLabels).To(Equal(generateAppServerSelectorLabels()))
 
@@ -388,6 +378,11 @@ var _ = Describe("App server assets", func() {
 					MountPath: "/etc/ols",
 					ReadOnly:  true,
 				},
+				{
+					Name:      "additional-ca",
+					ReadOnly:  true,
+					MountPath: "/etc/certs/ols-additional-ca",
+				},
 			}))
 			Expect(dep.Spec.Template.Spec.Volumes).To(ConsistOf([]corev1.Volume{
 				{
@@ -413,6 +408,15 @@ var _ = Describe("App server assets", func() {
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: corev1.LocalObjectReference{Name: OLSConfigCmName},
+							DefaultMode:          &defaultVolumeMode,
+						},
+					},
+				},
+				{
+					Name: "additional-ca",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{Name: AppAdditionalCAConfigmapName},
 							DefaultMode:          &defaultVolumeMode,
 						},
 					},
@@ -460,6 +464,11 @@ var _ = Describe("App server assets", func() {
 					MountPath: "/etc/ols",
 					ReadOnly:  true,
 				},
+				{
+					Name:      "additional-ca",
+					ReadOnly:  true,
+					MountPath: "/etc/certs/ols-additional-ca",
+				},
 			}))
 			Expect(dep.Spec.Template.Spec.Volumes).To(ConsistOf([]corev1.Volume{
 				{
@@ -485,6 +494,15 @@ var _ = Describe("App server assets", func() {
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: corev1.LocalObjectReference{Name: OLSConfigCmName},
+							DefaultMode:          &defaultVolumeMode,
+						},
+					},
+				},
+				{
+					Name: "additional-ca",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{Name: AppAdditionalCAConfigmapName},
 							DefaultMode:          &defaultVolumeMode,
 						},
 					},

@@ -340,6 +340,12 @@ func prometheusRuleEqual(a *monv1.PrometheusRule, b *monv1.PrometheusRule) bool 
 		apiequality.Semantic.DeepEqual(a.Spec, b.Spec)
 }
 
+// configmapEqual compares two corev1.ConfigMap and returns true if they are equal in terms of labels and data.
+func configmapEqual(a, b *corev1.ConfigMap) bool {
+	return apiequality.Semantic.DeepEqual(a.ObjectMeta.Labels, b.ObjectMeta.Labels) &&
+		apiequality.Semantic.DeepEqual(a.Data, b.Data)
+}
+
 // This is copied from https://github.com/kubernetes/kubernetes/blob/v1.29.2/pkg/apis/apps/v1/defaults.go#L38
 // to avoid importing the whole k8s.io/kubernetes package.
 // SetDefaults_Deployment sets additional defaults compared to its counterpart

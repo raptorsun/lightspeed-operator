@@ -59,6 +59,8 @@ const (
 	AppServerMetricsPath = "/metrics"
 	// AppAdditionalCAConfigmapName is the name of the additional CA configmap
 	AppAdditionalCAConfigmapName = "lightspeed-app-server-additional-ca"
+	// AppAdditionalCACertDir is the directory for storing additional CA certificates in the app server container under OLSAppCertsMountRoot
+	AppAdditionalCACertDir = "ols-additional-ca"
 
 	// Image of the OLS application redis server
 	// OLSConfigHashKey is the key of the hash value of the OLSConfig configmap

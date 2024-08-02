@@ -212,6 +212,13 @@ func (r *OLSConfigReconciler) generateOLSConfigMap(ctx context.Context, cr *olsv
 		},
 	}
 
+	if len(cr.Spec.OLSConfig.AdditionalCA) > 0 {
+		olsConfig.ExtraCAs = make([]string, len(cr.Spec.OLSConfig.AdditionalCA))
+		for i, _ := range cr.Spec.OLSConfig.AdditionalCA {
+			olsConfig.ExtraCAs[i] = path.Join(OLSAppCertsMountRoot, AppAdditionalCACertDir, fmt.Sprintf("ca-%d.crt", i))
+		}
+	}
+
 	if queryFilters := getQueryFilters(cr); queryFilters != nil {
 		olsConfig.QueryFilters = queryFilters
 	}
