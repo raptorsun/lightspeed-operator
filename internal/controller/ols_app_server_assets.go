@@ -214,8 +214,13 @@ func (r *OLSConfigReconciler) generateOLSConfigMap(ctx context.Context, cr *olsv
 
 	if len(cr.Spec.OLSConfig.AdditionalCA) > 0 {
 		olsConfig.ExtraCAs = make([]string, len(cr.Spec.OLSConfig.AdditionalCA))
-		for i, _ := range cr.Spec.OLSConfig.AdditionalCA {
-			olsConfig.ExtraCAs[i] = path.Join(OLSAppCertsMountRoot, AppAdditionalCACertDir, fmt.Sprintf("ca-%d.crt", i))
+		for i, caStr := range cr.Spec.OLSConfig.AdditionalCA {
+			caStrHash, err := hashBytes([]byte(caStr))
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate hash for additional CA certificate #%d: %v", i, err)
+			}
+			caFileName := fmt.Sprintf("ca-%s.crt", caStrHash)
+			olsConfig.ExtraCAs[i] = path.Join(OLSAppCertsMountRoot, AppAdditionalCACertDir, caFileName)
 		}
 	}
 
@@ -289,7 +294,11 @@ func (r *OLSConfigReconciler) generateAdditionalCAConfigmap(cr *olsv1alpha1.OLSC
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse additional CA certificate #%d: %v", idx, err)
 		}
-		caFileName := fmt.Sprintf("ca-%d.crt", idx)
+		caStrHash, err := hashBytes([]byte(caStr))
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate hash for additional CA certificate #%d: %v", idx, err)
+		}
+		caFileName := fmt.Sprintf("ca-%s.crt", caStrHash)
 		cmData[caFileName] = caStr
 	}
 

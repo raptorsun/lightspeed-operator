@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"path"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -85,7 +86,7 @@ var _ = Describe("App server assets", func() {
 			olsconfigGenerated := AppSrvConfigFile{}
 			err = yaml.Unmarshal([]byte(cm.Data[OLSConfigFilename]), &olsconfigGenerated)
 			Expect(err).NotTo(HaveOccurred())
-
+			caStrHash, _ := hashBytes([]byte(cr.Spec.OLSConfig.AdditionalCA[0]))
 			olsConfigExpected := AppSrvConfigFile{
 				OLSConfig: OLSConfig{
 					DefaultModel:    "testModel",
@@ -129,7 +130,7 @@ var _ = Describe("App server assets", func() {
 						TranscriptsStorage:  "/app-root/ols-user-data/transcripts",
 					},
 					ExtraCAs: []string{
-						path.Join(OLSAppCertsMountRoot, AppAdditionalCACertDir, "ca-0.crt"),
+						path.Join(OLSAppCertsMountRoot, AppAdditionalCACertDir, fmt.Sprintf("ca-%s.crt", caStrHash)),
 					},
 				},
 				LLMProviders: []ProviderConfig{
@@ -607,7 +608,8 @@ var _ = Describe("App server assets", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(caConfigMap.Name).To(Equal(AppAdditionalCAConfigmapName))
 			Expect(caConfigMap.Namespace).To(Equal(OLSNamespaceDefault))
-			Expect(caConfigMap.Data).To(HaveKeyWithValue("ca-0.crt", testCACert))
+			caStrHash, _ := hashBytes([]byte(cr.Spec.OLSConfig.AdditionalCA[0]))
+			Expect(caConfigMap.Data).To(HaveKeyWithValue(fmt.Sprintf("ca-%s.crt", caStrHash), testCACert))
 		})
 
 		It("should return error if the CA text is malformed", func() {

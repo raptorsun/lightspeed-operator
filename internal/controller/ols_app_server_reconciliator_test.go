@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"path"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -515,7 +516,8 @@ var _ = Describe("App server reconciliator", Ordered, func() {
 			foundCm := &corev1.ConfigMap{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Name: AppAdditionalCAConfigmapName, Namespace: OLSNamespaceDefault}, foundCm)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(foundCm.Data).To(HaveKeyWithValue("ca-0.crt", testCACert))
+			caStrHash, _ := hashBytes([]byte(testCACert))
+			Expect(foundCm.Data).To(HaveKeyWithValue(fmt.Sprintf("ca-%s.crt", caStrHash), testCACert))
 
 			By("Get app deployment and check the volume mount")
 			// TODO: check the volume mount
@@ -567,7 +569,8 @@ v+c=
 			foundCm := &corev1.ConfigMap{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Name: AppAdditionalCAConfigmapName, Namespace: OLSNamespaceDefault}, foundCm)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(foundCm.Data).To(HaveKeyWithValue("ca-0.crt", newCACert))
+			caStrHash, _ := hashBytes([]byte(newCACert))
+			Expect(foundCm.Data).To(HaveKeyWithValue(fmt.Sprintf("ca-%s.crt", caStrHash), newCACert))
 
 			By("Get app deployment and check the volume mount")
 			deployment := &appsv1.Deployment{}
