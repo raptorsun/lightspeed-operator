@@ -236,4 +236,54 @@ var _ = Describe("Reconciliation From OLSConfig CR", Ordered, func() {
 
 	})
 
+	It("should setup CA cert volumes and app configs after setting additional CA", func() {
+		By("update additional CA in the OLSConfig CR")
+		err = client.Get(cr)
+		Expect(err).NotTo(HaveOccurred())
+		cr.Spec.OLSConfig.AdditionalCA = []string{TestCACert}
+		err = client.Update(cr)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("check the app deployment to mount the additional CA cert")
+		deployment := &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      AppServerDeploymentName,
+				Namespace: OLSNameSpace,
+			},
+		}
+		err = client.WaitForDeploymentRollout(deployment)
+		Expect(err).NotTo(HaveOccurred())
+		cmVolumeDefaultMode := int32(420)
+		Expect(deployment.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
+			Name: AdditionalCAVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: AppAdditionalCAConfigmapName,
+					},
+					DefaultMode: &cmVolumeDefaultMode,
+				},
+			},
+		}))
+		Expect(deployment.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
+			Name: AdditionalCAVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		}))
+
+		By("check the configmap containing the additional CA cert")
+		configMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      AppAdditionalCAConfigmapName,
+				Namespace: OLSNameSpace,
+			},
+		}
+		certFilename, err := hashBytes([]byte(TestCACert))
+		Expect(err).NotTo(HaveOccurred())
+		err = client.WaitForConfigMapContainString(configMap, certFilename, TestCACert)
+		Expect(err).NotTo(HaveOccurred())
+
+	})
+
 })
