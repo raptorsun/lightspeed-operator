@@ -62,6 +62,7 @@ func (r *OLSConfigReconciler) generateOLSDeployment(cr *olsv1alpha1.OLSConfig) (
 	const OLSUserDataVolumeName = "ols-user-data"
 	const OLSUserDataMountPath = "/app-root/ols-user-data"
 	const AdditionalCAVolumeName = "additional-ca"
+	const MergedCABundleVolumeName = "merged-ca-bundle"
 	revisionHistoryLimit := int32(1)
 	volumeDefaultMode := int32(420)
 
@@ -86,6 +87,7 @@ func (r *OLSConfigReconciler) generateOLSDeployment(cr *olsv1alpha1.OLSConfig) (
 	tlsSecretNameMountPath := path.Join(OLSAppCertsMountRoot, OLSCertsSecretName)
 	secretMounts[OLSCertsSecretName] = tlsSecretNameMountPath
 	AdditionalCAMountPath := path.Join(OLSAppCertsMountRoot, AppAdditionalCACertDir)
+	mergedCAMountPath := path.Join(OLSAppCertsMountRoot, AppMergedCACertDir)
 
 	// Container ports
 	ports := []corev1.ContainerPort{
@@ -145,7 +147,13 @@ func (r *OLSConfigReconciler) generateOLSDeployment(cr *olsv1alpha1.OLSConfig) (
 				},
 			},
 		}
-		volumes = append(volumes, additionalCAVolume)
+		mergedCABundleVolume := corev1.Volume{
+			Name: MergedCABundleVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		}
+		volumes = append(volumes, additionalCAVolume, mergedCABundleVolume)
 	}
 
 	// TODO: Update DB
@@ -181,7 +189,12 @@ func (r *OLSConfigReconciler) generateOLSDeployment(cr *olsv1alpha1.OLSConfig) (
 			MountPath: AdditionalCAMountPath,
 			ReadOnly:  true,
 		}
-		volumeMounts = append(volumeMounts, additionalCAVolumeMount)
+		mergedCABundleVolumeMount := corev1.VolumeMount{
+			Name:      MergedCABundleVolumeName,
+			MountPath: CertifiCertificateDir,
+			ReadOnly:  false,
+		}
+		volumeMounts = append(volumeMounts, additionalCAVolumeMount, mergedCABundleVolumeMount)
 	}
 
 	// TODO: Update DB
@@ -190,6 +203,24 @@ func (r *OLSConfigReconciler) generateOLSDeployment(cr *olsv1alpha1.OLSConfig) (
 	replicas := getOLSServerReplicas(cr)
 	ols_server_resources := getOLSServerResources(cr)
 	data_collector_resources := getOLSDataCollectorResources(cr)
+
+	initContainers := []corev1.Container{}
+	if len(cr.Spec.OLSConfig.AdditionalCA) > 0 {
+		initContainer := corev1.Container{
+			Name:            "certifi-ca-mover",
+			Image:           r.Options.LightspeedServiceImage,
+			ImagePullPolicy: corev1.PullIfNotPresent,
+			VolumeMounts: []corev1.VolumeMount{
+				{
+					Name:      MergedCABundleVolumeName,
+					MountPath: mergedCAMountPath,
+					ReadOnly:  false,
+				},
+			},
+			Command: []string{"sh", "-c", fmt.Sprintf("cp -a %s %s", path.Join(CertifiCertificateDir, "*"), mergedCAMountPath)},
+		}
+		initContainers = append(initContainers, initContainer)
+	}
 
 	deployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -211,7 +242,7 @@ func (r *OLSConfigReconciler) generateOLSDeployment(cr *olsv1alpha1.OLSConfig) (
 						{
 							Name:            "lightspeed-service-api",
 							Image:           r.Options.LightspeedServiceImage,
-							ImagePullPolicy: corev1.PullAlways,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports:           ports,
 							SecurityContext: &corev1.SecurityContext{
 								AllowPrivilegeEscalation: &[]bool{false}[0],
@@ -248,6 +279,7 @@ func (r *OLSConfigReconciler) generateOLSDeployment(cr *olsv1alpha1.OLSConfig) (
 					},
 					Volumes:            volumes,
 					ServiceAccountName: OLSAppServerServiceAccountName,
+					InitContainers:     initContainers,
 				},
 			},
 			RevisionHistoryLimit: &revisionHistoryLimit,
@@ -368,9 +400,11 @@ func (r *OLSConfigReconciler) updateOLSDeployment(ctx context.Context, existingD
 	}
 
 	// validate container specs
-	if !containersEqual(existingDeployment.Spec.Template.Spec.Containers, desiredDeployment.Spec.Template.Spec.Containers) {
+	if !containersEqual(existingDeployment.Spec.Template.Spec.Containers, desiredDeployment.Spec.Template.Spec.Containers) ||
+		!containersEqual(existingDeployment.Spec.Template.Spec.InitContainers, desiredDeployment.Spec.Template.Spec.InitContainers) {
 		changed = true
 		existingDeployment.Spec.Template.Spec.Containers = desiredDeployment.Spec.Template.Spec.Containers
+		existingDeployment.Spec.Template.Spec.InitContainers = desiredDeployment.Spec.Template.Spec.InitContainers
 	}
 
 	if changed {

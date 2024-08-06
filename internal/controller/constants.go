@@ -124,4 +124,12 @@ const (
 	TelemetryPullSecretNamespace = "openshift-config"
 	// TelemetryPullSecretName is the name of the secret containing the telemetry pull secret
 	TelemetryPullSecretName = "pull-secret"
+
+	/*** Certifi manipulations ***/
+	// CertifiCertificateDir is the directory for storing certifi's certificate in the init container
+	CertifiCertificateDir = "/usr/local/lib/python3.11/site-packages/certifi"
+	// certifi's certificate path
+	CertifiCertificatePath = "/usr/local/lib/python3.11/site-packages/certifi/cacert.pem"
+	// AppMergedCACertDir is the directory for storing merged CA certificates in the app server container under OLSAppCertsMountRoot
+	AppMergedCACertDir = "ols-merged-ca"
 )

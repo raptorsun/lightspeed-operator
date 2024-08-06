@@ -260,6 +260,11 @@ var _ = Describe("App server assets", func() {
 					ReadOnly:  true,
 					MountPath: "/etc/certs/ols-additional-ca",
 				},
+				{
+					Name:      "merged-ca-bundle",
+					ReadOnly:  false,
+					MountPath: "/usr/local/lib/python3.11/site-packages/certifi",
+				},
 			}))
 			Expect(dep.Spec.Template.Spec.Containers[0].Resources).To(Equal(corev1.ResourceRequirements{
 				Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("2Gi")},
@@ -336,6 +341,12 @@ var _ = Describe("App server assets", func() {
 						},
 					},
 				},
+				{
+					Name: "merged-ca-bundle",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
 			}))
 			Expect(dep.Spec.Selector.MatchLabels).To(Equal(generateAppServerSelectorLabels()))
 
@@ -384,6 +395,11 @@ var _ = Describe("App server assets", func() {
 					ReadOnly:  true,
 					MountPath: "/etc/certs/ols-additional-ca",
 				},
+				{
+					Name:      "merged-ca-bundle",
+					ReadOnly:  false,
+					MountPath: "/usr/local/lib/python3.11/site-packages/certifi",
+				},
 			}))
 			Expect(dep.Spec.Template.Spec.Volumes).To(ConsistOf([]corev1.Volume{
 				{
@@ -420,6 +436,12 @@ var _ = Describe("App server assets", func() {
 							LocalObjectReference: corev1.LocalObjectReference{Name: AppAdditionalCAConfigmapName},
 							DefaultMode:          &defaultVolumeMode,
 						},
+					},
+				},
+				{
+					Name: "merged-ca-bundle",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
 			}))
@@ -470,6 +492,11 @@ var _ = Describe("App server assets", func() {
 					ReadOnly:  true,
 					MountPath: "/etc/certs/ols-additional-ca",
 				},
+				{
+					Name:      "merged-ca-bundle",
+					ReadOnly:  false,
+					MountPath: "/usr/local/lib/python3.11/site-packages/certifi",
+				},
 			}))
 			Expect(dep.Spec.Template.Spec.Volumes).To(ConsistOf([]corev1.Volume{
 				{
@@ -506,6 +533,12 @@ var _ = Describe("App server assets", func() {
 							LocalObjectReference: corev1.LocalObjectReference{Name: AppAdditionalCAConfigmapName},
 							DefaultMode:          &defaultVolumeMode,
 						},
+					},
+				},
+				{
+					Name: "merged-ca-bundle",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
 			}))
