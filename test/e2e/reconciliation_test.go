@@ -244,7 +244,20 @@ var _ = Describe("Reconciliation From OLSConfig CR", Ordered, func() {
 		err = client.Update(cr)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("check the app deployment to mount the additional CA cert")
+		By("check the configmap containing the additional CA cert")
+		configMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      AppAdditionalCAConfigmapName,
+				Namespace: OLSNameSpace,
+			},
+		}
+		certFileHash, err := hashBytes([]byte(TestCACert))
+		Expect(err).NotTo(HaveOccurred())
+		certFilename := fmt.Sprintf("ca-%s.crt", certFileHash)
+		err = client.WaitForConfigMapContainString(configMap, certFilename, TestCACert)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("check the app deployment to mount the additional CA cert configmap")
 		deployment := &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      AppServerDeploymentName,
@@ -265,24 +278,13 @@ var _ = Describe("Reconciliation From OLSConfig CR", Ordered, func() {
 				},
 			},
 		}))
+		By("check the app deployment to mount the merged CA cert configmap")
 		Expect(deployment.Spec.Template.Spec.Volumes).To(ContainElement(corev1.Volume{
-			Name: AdditionalCAVolumeName,
+			Name: MergedCABundleVolumeName,
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		}))
-
-		By("check the configmap containing the additional CA cert")
-		configMap := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      AppAdditionalCAConfigmapName,
-				Namespace: OLSNameSpace,
-			},
-		}
-		certFilename, err := hashBytes([]byte(TestCACert))
-		Expect(err).NotTo(HaveOccurred())
-		err = client.WaitForConfigMapContainString(configMap, certFilename, TestCACert)
-		Expect(err).NotTo(HaveOccurred())
 
 	})
 
