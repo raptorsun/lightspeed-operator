@@ -311,6 +311,10 @@ func (r *OLSConfigReconciler) generateAdditionalCAConfigmap(cr *olsv1alpha1.OLSC
 		Data: cmData,
 	}
 
+	if err := controllerutil.SetControllerReference(cr, &cm, r.Scheme); err != nil {
+		return nil, err
+	}
+
 	return &cm, nil
 
 }
