@@ -7,7 +7,7 @@ import (
 
 func Ptr[T any](v T) *T { return &v }
 
-func hashBytes(sourceStr []byte) (string, error) {
+func hashBytes(sourceStr []byte) (string, error) { // nolint:unused
 	hashFunc := sha256.New()
 	_, err := hashFunc.Write(sourceStr)
 	if err != nil {
