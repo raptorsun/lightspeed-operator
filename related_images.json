@@ -26,8 +26,7 @@
   },
   {
     "name": "lightspeed-to-dataverse-exporter",
-    "image": "registry.redhat.io/openshift-lightspeed/lightspeed-to-dataverse-exporter-rhel9@sha256:94131f9c751de95290270d09074cc9b57c2f0c0ead0cd24c3c083c6c064eecbf",
-    "revision": "11f25bbf327aaeec54716160606a18dcf4bf1c72"
+    "image": "registry.redhat.io/lightspeed-core/dataverse-exporter-rhel9:0.4.1"
   },
   {
     "name": "lightspeed-ocp-rag",
