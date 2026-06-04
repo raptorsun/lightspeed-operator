@@ -3,6 +3,7 @@
 # It should be run by config/default
 resources:
 - bases/ols.openshift.io_olsconfigs.yaml
+- bases/agentic.openshift.io_agenticolsconfigs.yaml
 - bases/agentic.openshift.io_agents.yaml
 - bases/agentic.openshift.io_analysisresults.yaml
 - bases/agentic.openshift.io_approvalpolicies.yaml
